@@ -8,7 +8,12 @@ import {
   Body,
   ParseIntPipe,
 } from '@nestjs/common';
+
 import { PacientesService } from './pacientes.service.js';
+
+import { CreatePacienteDto } from './dto/create-paciente.dto.js';
+
+import { UpdatePacienteDto } from './dto/update-paciente.dto.js';
 
 @Controller('pacientes')
 export class PacientesController {
@@ -25,32 +30,16 @@ export class PacientesController {
   }
 
   @Post()
-  create(
-    @Body()
-    body: {
-      nombre: string;
-      apellido: string;
-      telefono: string;
-      email?: string;
-      fecha_nacimiento: Date;
-    },
-  ) {
-    return this.pacientesService.create(body);
+  create(@Body() dto: CreatePacienteDto) {
+    return this.pacientesService.create(dto);
   }
 
   @Put(':id')
   update(
     @Param('id', ParseIntPipe) id: number,
-    @Body()
-    body: {
-      nombre?: string;
-      apellido?: string;
-      telefono?: string;
-      email?: string;
-      fecha_nacimiento?: Date;
-    },
+    @Body() dto: UpdatePacienteDto,
   ) {
-    return this.pacientesService.update(id, body);
+    return this.pacientesService.update(id, dto);
   }
 
   @Delete(':id')

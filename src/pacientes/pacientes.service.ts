@@ -1,5 +1,14 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
+
 import { PrismaService } from '../prisma/prisma.service.js';
+
+import { CreatePacienteDto } from './dto/create-paciente.dto.js';
+
+import { UpdatePacienteDto } from './dto/update-paciente.dto.js';
 
 @Injectable()
 export class PacientesService {
@@ -21,31 +30,50 @@ export class PacientesService {
     return paciente;
   }
 
-  create(data: {
-    nombre: string;
-    apellido: string;
-    telefono: string;
-    email?: string;
-    fecha_nacimiento: Date;
-  }) {
-    return this.prisma.pacientes.create({ data });
+  async create(data: CreatePacienteDto) {
+    const fechaNacimiento = new Date(data.fecha_nacimiento);
+
+    if (fechaNacimiento > new Date()) {
+      throw new BadRequestException(
+        'La fecha de nacimiento no puede ser futura',
+      );
+    }
+
+    return this.prisma.pacientes.create({
+      data: {
+        nombre: data.nombre,
+        apellido: data.apellido,
+        telefono: data.telefono,
+        email: data.email,
+        fecha_nacimiento: fechaNacimiento,
+      },
+    });
   }
 
-  async update(
-    id: number,
-    data: {
-      nombre?: string;
-      apellido?: string;
-      telefono?: string;
-      email?: string;
-      fecha_nacimiento?: Date;
-    },
-  ) {
+  async update(id: number, data: UpdatePacienteDto) {
     await this.findOne(id);
+
+    let fechaNacimiento: Date | undefined;
+
+    if (data.fecha_nacimiento) {
+      fechaNacimiento = new Date(data.fecha_nacimiento);
+
+      if (fechaNacimiento > new Date()) {
+        throw new BadRequestException(
+          'La fecha de nacimiento no puede ser futura',
+        );
+      }
+    }
 
     return this.prisma.pacientes.update({
       where: { id_paciente: id },
-      data,
+      data: {
+        nombre: data.nombre,
+        apellido: data.apellido,
+        telefono: data.telefono,
+        email: data.email,
+        fecha_nacimiento: fechaNacimiento,
+      },
     });
   }
 
