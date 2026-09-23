@@ -22,7 +22,10 @@ export class CitasService {
     });
   }
 
-  findAll() {
+  findAll(user: { id: number; role: string }) {
+    if (user.role === 'MEDICO') {
+      return this.prisma.citas.findMany({ where: { id_medico: user.id } });
+    }
     return this.prisma.citas.findMany();
   }
 }
