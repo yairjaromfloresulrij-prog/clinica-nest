@@ -23,7 +23,23 @@
 
 ## Description
 
-[Nest](https://github.com/nestjs/nest) framework TypeScript starter repository.
+API de la Clínica Salud Integral, migrada de Express a NestJS + Prisma + PostgreSQL. Gestiona Pacientes, Médicos, Citas y Reportes de Gerencia.
+
+## Recorrido del pipeline: `POST /citas`
+
+Este es el mapa mental que me llevo después de tres semanas migrando la API a NestJS: el camino completo que recorre un request a `POST /citas`, en el orden en que Nest lo ejecuta.
+
+Cuando alguien manda un `POST /citas`, ese request no llega directo al código que crea la cita. Antes pasa por varias "postas" de control, una después de la otra. Así es el recorrido:
+
+1. **`JwtAuthGuard`** — es el primer portero. Revisa si el request trae un token (algo así como una credencial digital) en el header `Authorization`. Si no lo trae, o está mal, ahí termina todo con un error `401` (no autorizado) y el request nunca llega más lejos.
+2. **`RolesGuard`** — es el segundo portero. Ya sabemos quién es el usuario (gracias al paso anterior), así que ahora se fija si ese usuario tiene el rol correcto para crear una cita (en este caso, `RECEPCIONISTA`). Si no le corresponde, corta con un `403` (prohibido).
+3. **`LoggingInterceptor` (parte de entrada)** — este no bloquea nada, solo anota la hora en que arrancó el request, para más adelante calcular cuánto tardó todo el proceso.
+4. **`ValidationPipe`** — revisa que los datos que mandaron en el body (fecha, paciente, médico, etc.) tengan el formato correcto, según las reglas que definimos en el DTO. Si falta un dato o está mal escrito, corta con un `400` (mal pedido) antes de que el controller vea siquiera el request.
+5. **`CitasController` → `CitasService`** — recién acá se ejecuta la lógica real: primero se fija si el paciente existe (llamando a `PacientesService`); si no existe, se corta con un `404` (no encontrado). Si existe, ahí sí se crea la cita en la base de datos.
+6. **`PrismaExceptionFilter`** — si en el paso anterior algo sale mal del lado de la base de datos (por ejemplo, el médico que se puso no existe), este filtro "atrapa" ese error técnico y lo convierte en una respuesta clara y prolija, en vez de mostrar un error feo de Prisma.
+7. **`LoggingInterceptor` (parte de salida)** — antes de que la respuesta final salga para el usuario, este interceptor calcula cuánto tiempo pasó desde que arrancó (paso 3) hasta ahora, y lo deja anotado en la consola del servidor.
+
+Lo que más me costó entender al principio es la diferencia entre estas piezas: los Guards y el Interceptor "envuelven" todo el proceso de punta a punta (entran antes de todo y el interceptor también cierra al final), mientras que el Pipe actúa en un momento puntual (antes de que el controller reciba los datos) y el Filter solo aparece si algo sale mal. Pensarlo como capas que van filtrando el request, una por una, hasta llegar al corazón de la lógica (el Service), fue lo que me ayudó a entenderlo de verdad.
 
 ## Project setup
 
